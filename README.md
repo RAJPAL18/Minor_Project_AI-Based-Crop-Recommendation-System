@@ -1,0 +1,1 @@
+# Minor_Project_AI-Based-Crop-Recommendation-System
