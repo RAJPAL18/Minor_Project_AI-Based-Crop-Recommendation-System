@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KisanConnect - AI Crop Recommendation</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-overlay"></div>
+    <div class="container">
+        <div class="lang-toggle">
+            <button id="btn-en" class="active">English</button>
+            <button id="btn-hi">हिंदी</button>
+        </div>
+        <header>
+            <div class="logo-box">
+                <img src="logo.png" alt="KisanConnect Logo" class="logo-icon">
+                <h1 data-i18n="title">KisanConnect</h1>
+            </div>
+            <p data-i18n="subtitle">Smart, AI-Powered Crop Recommendations for Your Farm</p>
+        </header>
+
+        <main>
+            <div class="card form-card">
+                <h2 data-i18n="form_title">Enter Soil & Location Details</h2>
+                <form id="prediction-form">
+                    <div class="input-group">
+                        <div class="input-field">
+                            <label for="N" data-i18n="n_label">Nitrogen (N)</label>
+                            <input type="number" id="N" name="N" placeholder="e.g., 90" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="P" data-i18n="p_label">Phosphorus (P)</label>
+                            <input type="number" id="P" name="P" placeholder="e.g., 42" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="K" data-i18n="k_label">Potassium (K)</label>
+                            <input type="number" id="K" name="K" placeholder="e.g., 43" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="ph" data-i18n="ph_label">Soil pH</label>
+                            <input type="number" step="0.1" id="ph" name="ph" placeholder="e.g., 6.5" required>
+                        </div>
+                    </div>
+                    
+                    <div class="input-field location-field">
+                        <label for="location" data-i18n="loc_label">City/Town (for Weather Data)</label>
+                        <div class="location-input-wrapper">
+                            <input type="text" id="location" name="location" placeholder="e.g., Pune, India" required>
+                            <button type="button" id="get-location-btn" class="icon-btn" title="Get My Location">📍</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submit-btn">
+                        <span id="btn-text" data-i18n="submit_btn">Get Recommendation</span>
+                        <div class="spinner" id="spinner" style="display: none;"></div>
+                    </button>
+                </form>
+            </div>
+
+            <div class="card result-card" id="result-card" style="display: none;">
+                <div id="suitability-alert" class="suitability-alert" style="display: none;"></div>
+                <h2 data-i18n="result_title">Recommended Crops</h2>
+                
+                <div class="top-crops-container" id="top-crops">
+                    <!-- Dynamic top 3 crops will go here -->
+                </div>
+                
+                <div class="explanation-box" id="explanation-box">
+                    <h3 data-i18n="why_suitable_title">Why is this suitable?</h3>
+                    <p id="explanation-text"></p>
+                </div>
+                
+                <p class="weather-info" id="weather-info">Based on your soil and local weather.</p>
+                <button class="reset-btn" onclick="resetForm()" data-i18n="reset_btn">Check Another</button>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
