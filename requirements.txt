@@ -6,3 +6,8 @@ uvicorn
 requests
 joblib
 python-dotenv
+sqlalchemy
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+pymysql

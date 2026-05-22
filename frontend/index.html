@@ -1,83 +1,352 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+    <!-- Global Error Logger for diagnostics -->
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            const errStr = "Error: " + message + "\nSource: " + source + "\nLine: " + lineno + ":" + colno;
+            console.error(errStr);
+            alert("Diagnostics Info:\n\n" + errStr);
+            
+            // Send log to FastAPI backend
+            fetch('http://127.0.0.1:8000/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: message,
+                    source: source,
+                    lineno: lineno,
+                    colno: colno,
+                    stack: error ? error.stack : null
+                })
+            }).catch(err => console.error("Failed to send diagnostics:", err));
+        };
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KisanConnect - AI Crop Recommendation</title>
-    <link rel="stylesheet" href="style.css">
+
+    <link rel="stylesheet" href="style.css?v=1.0.7">
+
+    <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS Client (Loaded locally for reliability) -->
+    <script src="supabase.js?v=2.106.2"></script>
 </head>
+
 <body>
+
+    <!-- Background Overlay -->
     <div class="background-overlay"></div>
-    <div class="container">
-        <div class="lang-toggle">
-            <button id="btn-en" class="active">English</button>
-            <button id="btn-hi">हिंदी</button>
+
+    <!-- ================= NAVBAR ================= -->
+    <nav class="navbar" id="navbar">
+        <div class="navbar-brand">🌿 KisanConnect</div>
+
+        <div class="navbar-right">
+
+            <!-- Language Toggle -->
+            <div class="lang-toggle">
+                <button id="btn-en" class="active">EN</button>
+                <button id="btn-hi">हि</button>
+            </div>
+
+            <!-- Auth Buttons -->
+            <div class="nav-auth-btns" id="nav-auth-btns">
+                <button class="nav-btn nav-login-btn" onclick="openModal('login')">Login</button>
+                <button class="nav-btn nav-signup-btn" onclick="openModal('signup')">Sign Up</button>
+            </div>
+
+            <!-- User Info -->
+            <div class="nav-user" id="nav-user" style="display:none;">
+                <span class="nav-user-name" id="nav-user-name">👤 Farmer</span>
+                <button class="nav-btn nav-logout-btn" onclick="logout()">Logout</button>
+            </div>
         </div>
+    </nav>
+
+    <!-- ================= AUTH MODAL ================= -->
+    <div class="modal-backdrop" id="modal-backdrop" onclick="closeModal()"></div>
+
+    <div class="modal" id="auth-modal">
+        <button class="modal-close" onclick="closeModal()">✕</button>
+
+        <div class="modal-tabs">
+            <button class="modal-tab active" id="modal-tab-login" onclick="switchModalTab('login')">Login</button>
+            <button class="modal-tab" id="modal-tab-signup" onclick="switchModalTab('signup')">Sign Up</button>
+            <div class="modal-tab-bar" id="modal-tab-bar"></div>
+        </div>
+
+        <div class="modal-banner" id="modal-banner" style="display:none;"></div>
+
+        <!-- LOGIN -->
+        <form class="modal-form active" id="modal-form-login">
+            <div class="modal-form-header">
+                <h2>Welcome back 👋</h2>
+                <p>Login to access your personalized farming data</p>
+            </div>
+
+            <div class="mfield">
+                <label>Email Address <span class="req">*</span></label>
+                <input type="email" id="m-username" placeholder="Enter your email" required>
+            </div>
+
+            <div class="mfield">
+                <label>Password <span class="req">*</span></label>
+                <div class="mfield-pw">
+                    <input type="password" id="m-password" placeholder="Enter password" required>
+                    <button type="button" class="pw-eye" onclick="togglePw('m-password', this)">👁️</button>
+                </div>
+            </div>
+
+            <button type="submit" class="modal-submit-btn" id="login-submit-btn">
+                <span id="login-submit-text">Login</span>
+                <div class="spinner-small" id="login-modal-spinner" style="display:none;"></div>
+            </button>
+            
+            <div class="modal-switch">
+                Don't have an account? <a href="#" onclick="switchModalTab('signup')">Create one</a>
+            </div>
+        </form>
+
+        <!-- SIGNUP -->
+        <form class="modal-form" id="modal-form-signup">
+            <div class="modal-form-header">
+                <h2>Create Account 🌿</h2>
+                <p>Join our community of smart farmers</p>
+            </div>
+
+            <div class="mfield">
+                <label>Full Name</label>
+                <input type="text" id="m-fullname" placeholder="e.g. Rahul Kumar">
+            </div>
+
+            <div class="mfield-row">
+                <div class="mfield">
+                    <label>Username <span class="req">*</span></label>
+                    <input type="text" id="m-reg-username" placeholder="Username" required>
+                </div>
+                <div class="mfield">
+                    <label>Email <span class="req">*</span></label>
+                    <input type="email" id="m-email" placeholder="Email" required>
+                </div>
+            </div>
+
+            <div class="mfield">
+                <label>Password <span class="req">*</span></label>
+                <div class="mfield-pw">
+                    <input type="password" id="m-reg-password" placeholder="Minimum 8 characters" required>
+                    <button type="button" class="pw-eye" onclick="togglePw('m-reg-password', this)">👁️</button>
+                </div>
+            </div>
+
+            <div class="pw-strength-wrap" id="pw-strength-wrap" style="display:none;">
+                <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-sfill"></div></div>
+                <div class="pw-strength-lbl" id="pw-slbl">Weak</div>
+            </div>
+
+            <div class="mfield">
+                <label>Confirm Password <span class="req">*</span></label>
+                <input type="password" id="m-confirm" placeholder="Repeat password" required>
+            </div>
+
+            <button type="submit" class="modal-submit-btn" id="signup-submit-btn">
+                <span id="signup-submit-text">Create Account</span>
+                <div class="spinner-small" id="signup-modal-spinner" style="display:none;"></div>
+            </button>
+
+            <div class="modal-switch">
+                Already have an account? <a href="#" onclick="switchModalTab('login')">Login here</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <div class="container">
+
         <header>
             <div class="logo-box">
                 <img src="logo.png" alt="KisanConnect Logo" class="logo-icon">
-                <h1 data-i18n="title">KisanConnect</h1>
+                <h1>KisanConnect</h1>
             </div>
-            <p data-i18n="subtitle">Smart, AI-Powered Crop Recommendations for Your Farm</p>
+            <p>Smart, AI-Powered Crop Recommendations for Your Farm</p>
         </header>
 
-        <main>
-            <div class="card form-card">
-                <h2 data-i18n="form_title">Enter Soil & Location Details</h2>
-                <form id="prediction-form">
-                    <div class="input-group">
-                        <div class="input-field">
-                            <label for="N" data-i18n="n_label">Nitrogen (N)</label>
-                            <input type="number" id="N" name="N" placeholder="e.g., 90" required>
-                        </div>
-                        <div class="input-field">
-                            <label for="P" data-i18n="p_label">Phosphorus (P)</label>
-                            <input type="number" id="P" name="P" placeholder="e.g., 42" required>
-                        </div>
-                        <div class="input-field">
-                            <label for="K" data-i18n="k_label">Potassium (K)</label>
-                            <input type="number" id="K" name="K" placeholder="e.g., 43" required>
-                        </div>
-                        <div class="input-field">
-                            <label for="ph" data-i18n="ph_label">Soil pH</label>
-                            <input type="number" step="0.1" id="ph" name="ph" placeholder="e.g., 6.5" required>
-                        </div>
-                    </div>
-                    
-                    <div class="input-field location-field">
-                        <label for="location" data-i18n="loc_label">City/Town (for Weather Data)</label>
-                        <div class="location-input-wrapper">
-                            <input type="text" id="location" name="location" placeholder="e.g., Pune, India" required>
-                            <button type="button" id="get-location-btn" class="icon-btn" title="Get My Location">📍</button>
-                        </div>
+        <!-- ================= FORM ================= -->
+        <div class="card form-card">
+
+            <h2>Enter Soil & Location Details</h2>
+
+            <form id="prediction-form">
+
+                <div class="input-group">
+
+                    <div class="input-field">
+                        <label>Nitrogen (N)</label>
+                        <input type="number" id="N" required>
                     </div>
 
-                    <button type="submit" id="submit-btn">
-                        <span id="btn-text" data-i18n="submit_btn">Get Recommendation</span>
-                        <div class="spinner" id="spinner" style="display: none;"></div>
-                    </button>
-                </form>
+                    <div class="input-field">
+                        <label>Phosphorus (P)</label>
+                        <input type="number" id="P" required>
+                    </div>
+
+                    <div class="input-field">
+                        <label>Potassium (K)</label>
+                        <input type="number" id="K" required>
+                    </div>
+
+                    <div class="input-field">
+                        <label>Soil pH</label>
+                        <input type="number" step="0.1" id="ph" required>
+                    </div>
+
+                </div>
+
+                <!-- Weather Mode Toggle -->
+                <div class="weather-mode-section">
+                    <label class="mode-title">Weather Info Source</label>
+                    <div class="weather-toggle-tabs">
+                        <button type="button" class="weather-tab active" id="weather-tab-api" onclick="setWeatherMode('api')">
+                            🛰️ Fetch Automatically (via API)
+                        </button>
+                        <button type="button" class="weather-tab" id="weather-tab-manual" onclick="setWeatherMode('manual')">
+                            ✏️ Enter Weather Manually
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Location Field -->
+                <div class="input-field location-field" id="location-field-wrap">
+                    <label id="location-input-label">City / Location</label>
+                    <div class="location-input-wrapper">
+                        <input type="text" id="location" placeholder="e.g. Indore, India" required>
+                        <button type="button" id="get-location-btn" title="Get current location">📍</button>
+                        <button type="button" id="fetch-weather-btn" class="fetch-btn">Fetch Weather</button>
+                    </div>
+                </div>
+
+                <!-- Weather Parameters Group -->
+                <div class="weather-inputs-grid" id="weather-inputs-grid">
+                    <div class="input-field">
+                        <label>Temperature (°C)</label>
+                        <div class="weather-input-wrap">
+                            <span class="weather-input-icon">🌡️</span>
+                            <input type="number" step="0.1" id="temperature" placeholder="Auto-filled" readonly required>
+                        </div>
+                    </div>
+                    <div class="input-field">
+                        <label>Humidity (%)</label>
+                        <div class="weather-input-wrap">
+                            <span class="weather-input-icon">💧</span>
+                            <input type="number" step="1" id="humidity" placeholder="Auto-filled" readonly required>
+                        </div>
+                    </div>
+                    <div class="input-field">
+                        <label>Rainfall (mm)</label>
+                        <div class="weather-input-wrap">
+                            <span class="weather-input-icon">🌧️</span>
+                            <input type="number" step="0.1" id="rainfall" placeholder="Auto-filled" readonly required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ✅ WEATHER DISPLAY -->
+                <div id="weather-info" class="weather-info" style="display:none;"></div>
+
+                <!-- Submit -->
+                <button type="submit" id="submit-btn">
+                    <span id="btn-text">Get Recommendation</span>
+                    <div class="spinner" id="spinner" style="display:none;"></div>
+                </button>
+
+            </form>
+        </div>
+
+        <!-- ================= RESULT ================= -->
+        <div id="result-card" class="card result-card" style="display:none;">
+
+            <h2>Recommended Crops</h2>
+            
+            <div id="suitability-alert" class="suitability-alert" style="display:none;"></div>
+
+            <!-- Weather & Env Parameters Display -->
+            <div class="result-parameters">
+                <div class="param-box">
+                    <span class="param-icon">🌡️</span>
+                    <span class="param-label" data-i18n="temp_label">Temperature</span>
+                    <span class="param-value" id="res-temp">--</span>
+                </div>
+                <div class="param-box">
+                    <span class="param-icon">💧</span>
+                    <span class="param-label" data-i18n="hum_label">Humidity</span>
+                    <span class="param-value" id="res-hum">--</span>
+                </div>
+                <div class="param-box">
+                    <span class="param-icon">🌧️</span>
+                    <span class="param-label" data-i18n="rain_label">Rainfall</span>
+                    <span class="param-value" id="res-rain">--</span>
+                </div>
             </div>
 
-            <div class="card result-card" id="result-card" style="display: none;">
-                <div id="suitability-alert" class="suitability-alert" style="display: none;"></div>
-                <h2 data-i18n="result_title">Recommended Crops</h2>
-                
-                <div class="top-crops-container" id="top-crops">
-                    <!-- Dynamic top 3 crops will go here -->
-                </div>
-                
-                <div class="explanation-box" id="explanation-box">
-                    <h3 data-i18n="why_suitable_title">Why is this suitable?</h3>
-                    <p id="explanation-text"></p>
-                </div>
-                
-                <p class="weather-info" id="weather-info">Based on your soil and local weather.</p>
-                <button class="reset-btn" onclick="resetForm()" data-i18n="reset_btn">Check Another</button>
+            <div class="crop-result" id="crop-name"></div>
+            
+            <!-- Top Crops List -->
+            <div id="top-crops" class="top-crops-container"></div>
+
+            <div id="explanation-text"></div>
+
+            <button class="reset-btn" onclick="location.reload()">Check Another</button>
+
+        </div>
+
+        <!-- ================= HISTORY ================= -->
+        <div id="history-section" class="card history-card" style="display:none; margin-top: 2rem;">
+            <h2 data-i18n="history_title">Your Prediction History</h2>
+            <div id="history-list">
+                <div class="spinner-small"></div>
             </div>
-        </main>
+        </div>
+
     </div>
-    <script src="script.js"></script>
+
+    <!-- ================= VARSHA CHATBOT UI ================= -->
+    <button class="varsha-launcher" id="varsha-launcher">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    </button>
+    
+    <div class="varsha-panel" id="varsha-panel">
+        <div class="varsha-header">
+            <div class="varsha-header-info">
+                <div class="varsha-avatar">🌿</div>
+                <div>
+                    <div class="varsha-name">Varsha Chatbot</div>
+                    <div class="varsha-status"><span class="varsha-dot"></span> Online</div>
+                </div>
+            </div>
+            <button class="varsha-close" id="varsha-close">✕</button>
+        </div>
+        
+        <div class="varsha-messages" id="varsha-messages">
+            <div class="varsha-welcome">
+                <span class="varsha-welcome-emoji">👩‍🌾</span>
+                Namaste! I'm Varsha, your AI assistant. Ask me anything about crops, soil, or farming.
+            </div>
+        </div>
+        
+        <form class="varsha-footer" id="varsha-form">
+            <input type="text" class="varsha-input" id="varsha-input" placeholder="Type your message..." autocomplete="off" required>
+            <button type="submit" class="varsha-send" id="varsha-send">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </form>
+    </div>
+
+    <!-- JS -->
+    <script src="script.js?v=1.0.7"></script>
+
 </body>
+
 </html>

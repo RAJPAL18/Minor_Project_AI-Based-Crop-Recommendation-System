@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Global Error Logger for diagnostics -->
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            const errStr = "Error: " + message + "\nSource: " + source + "\nLine: " + lineno + ":" + colno;
+            console.error(errStr);
+            alert("Diagnostics Info:\n\n" + errStr);
+            
+            // Send log to FastAPI backend
+            fetch('http://127.0.0.1:8000/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: message,
+                    source: source,
+                    lineno: lineno,
+                    colno: colno,
+                    stack: error ? error.stack : null
+                })
+            }).catch(err => console.error("Failed to send diagnostics:", err));
+        };
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KisanConnect – Login / Sign Up</title>
+    <meta name="description" content="Login or create your KisanConnect account to access AI-powered crop recommendations.">
+    <link rel="stylesheet" href="style.css?v=1.0.7">
+    <link rel="stylesheet" href="auth.css?v=1.0.7">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client (Loaded locally for reliability) -->
+    <script src="supabase.js?v=2.106.2"></script>
+</head>
+<body>
+    <div class="background-overlay"></div>
+
+    <!-- Floating decorative blobs -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <div class="auth-wrapper">
+        <!-- Left panel – branding -->
+        <div class="auth-branding">
+            <div class="brand-content">
+                <img src="logo.png" alt="KisanConnect Logo" class="auth-logo">
+                <h1 class="brand-title">KisanConnect</h1>
+                <p class="brand-sub">Smart, AI-Powered Crop Recommendations</p>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <span class="feat-icon">🌱</span>
+                        <span>AI-based crop prediction with 99% accuracy</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feat-icon">🌦️</span>
+                        <span>Real-time weather integration</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feat-icon">📊</span>
+                        <span>Personal history &amp; tracking dashboard</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feat-icon">🇮🇳</span>
+                        <span>Hindi &amp; English bilingual support</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right panel – form -->
+        <div class="auth-form-panel">
+            <!-- Tab switcher -->
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Login</button>
+                <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+                <div class="tab-indicator" id="tab-indicator"></div>
+            </div>
+
+            <!-- Error / success banner -->
+            <div class="auth-banner" id="auth-banner" style="display:none;"></div>
+
+            <!-- LOGIN FORM -->
+            <form class="auth-form active" id="form-login" autocomplete="on" novalidate>
+                <div class="form-header">
+                    <h2>Welcome back 👋</h2>
+                    <p>Login to your KisanConnect account</p>
+                </div>
+
+                <div class="field">
+                    <label for="login-username">Email Address</label>
+                    <div class="input-icon-wrap">
+                        <span class="field-icon">✉️</span>
+                        <input type="email" id="login-username" placeholder="you@example.com" autocomplete="email" required>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="login-password">Password</label>
+                    <div class="input-icon-wrap">
+                        <span class="field-icon">🔒</span>
+                        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required>
+                        <button type="button" class="toggle-pw" onclick="togglePassword('login-password', this)">👁️</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-submit-btn" id="login-btn">
+                    <span id="login-btn-text">Login to Dashboard</span>
+                    <div class="spinner" id="login-spinner" style="display:none;"></div>
+                </button>
+
+                <p class="switch-link">Don't have an account? <a href="#" onclick="switchTab('signup')">Sign Up</a></p>
+            </form>
+
+            <!-- SIGNUP FORM -->
+            <form class="auth-form" id="form-signup" autocomplete="on" novalidate>
+                <div class="form-header">
+                    <h2>Create Account 🌿</h2>
+                    <p>Join thousands of farmers using KisanConnect</p>
+                </div>
+
+                <div class="field-row">
+                    <div class="field">
+                        <label for="signup-fullname">Full Name</label>
+                        <div class="input-icon-wrap">
+                            <span class="field-icon">🙍</span>
+                            <input type="text" id="signup-fullname" placeholder="Rajpal Singh" autocomplete="name">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="signup-username">Username <span class="req">*</span></label>
+                        <div class="input-icon-wrap">
+                            <span class="field-icon">👤</span>
+                            <input type="text" id="signup-username" placeholder="rajpal18" autocomplete="username" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="signup-email">Email Address <span class="req">*</span></label>
+                    <div class="input-icon-wrap">
+                        <span class="field-icon">✉️</span>
+                        <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" required>
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field">
+                        <label for="signup-password">Password <span class="req">*</span></label>
+                        <div class="input-icon-wrap">
+                            <span class="field-icon">🔒</span>
+                            <input type="password" id="signup-password" placeholder="Min. 8 chars" autocomplete="new-password" required>
+                            <button type="button" class="toggle-pw" onclick="togglePassword('signup-password', this)">👁️</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="signup-confirm">Confirm Password <span class="req">*</span></label>
+                        <div class="input-icon-wrap">
+                            <span class="field-icon">🔒</span>
+                            <input type="password" id="signup-confirm" placeholder="Repeat password" autocomplete="new-password" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Password strength meter -->
+                <div class="pw-strength" id="pw-strength" style="display:none;">
+                    <div class="pw-strength-bar">
+                        <div class="pw-strength-fill" id="pw-strength-fill"></div>
+                    </div>
+                    <span class="pw-strength-label" id="pw-strength-label">Weak</span>
+                </div>
+
+                <button type="submit" class="auth-submit-btn" id="signup-btn">
+                    <span id="signup-btn-text">Create My Account</span>
+                    <div class="spinner" id="signup-spinner" style="display:none;"></div>
+                </button>
+
+                <p class="switch-link">Already have an account? <a href="#" onclick="switchTab('login')">Login</a></p>
+            </form>
+        </div>
+    </div>
+
+    <script src="auth.js?v=1.0.7"></script>
+</body>
+</html>
